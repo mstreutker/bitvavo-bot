@@ -1,0 +1,6 @@
+# Python cache files
+src/__pycache__/
+
+# App files
+bitvavo.log
+config.ini
