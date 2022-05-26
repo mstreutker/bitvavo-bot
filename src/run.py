@@ -1,6 +1,11 @@
 import bitvavo as bv
 import logging
+import confighelper
 import sys
+
+#
+# logging settings
+#
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -17,20 +22,35 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logger.addHandler(stdout_handler)
 
-ticker = 'ADA-EUR' 
-currency = 'EUR'
-buy_margin = 6      # market price needs to be x% below
-sell_margin = 15     # market price needs to be x% above
-#buy_amount = 1      # % of available credit for buy
-#sell_amount = 1     # % of available amount to sell
-debug = True
+#
+# configuration settings
+#
+
+config = confighelper.read_config()
+
+# get the currency of the balance account
+currency = config['TradeSettings']['currency'] 
+
+# market price needs to be x% below
+buy_margin = config.getfloat('TradeSettings','buy_margin')
+
+# market price needs to be x% above
+sell_margin = config.getfloat('TradeSettings','sell_margin')
+
+# trade = True will trade currencies, False will only log the current state
+trade = config.getboolean('TradeSettings','trade')
+
+# check if the logging should be verbose
+verbose = config.getboolean('TradeSettings','verbose')
+
+# get the list of currencies that need to be monitored
+ticker_list = (config['TradeSettings']['tickerlist']).split(',')
+
 # instantiate a new bitvavo connection
 client = bv.bitvavo_client()
 
-ticker_list = ['ADA-EUR', 'BTC-EUR', 'ETH-EUR']
-
 for ticker in ticker_list:
-  print (ticker)
+  print (f"Current ticker : {ticker}")
 
   # get trade history for ticker
   trades_df = client.get_trades (ticker)
@@ -41,6 +61,7 @@ for ticker in ticker_list:
   # get actual balance for all currencies
   balance_df = client.get_balance()
   balance_EUR = balance_df[balance_df["symbol"]==currency]['available'].iloc[0]
+  print(f"Current Balance in {currency}: {balance_EUR}")
 
   # select the latest, most recent trade
   latest_trade = trades_df.iloc[-1]
@@ -48,14 +69,6 @@ for ticker in ticker_list:
   # get market details
   market = client.get_market(ticker)
   moq_ = market[market["orderTypes"]=="market"]["minOrderInBaseAsset"].iloc[0]
-  # print(type(moq_))
-  # print(f"_moq {moq_}")
-  # if isinstance(moq_, int):
-  #   print ("int")
-  #   moq = int(moq_)
-  # else:
-  #   print("float")
-  #   moq = float(moq_)
 
   # Minimal Order Quantity needs to be float or int (matching market settings), 
   # otherwise API call fails with 309 error
@@ -63,13 +76,9 @@ for ticker in ticker_list:
       moq = int(moq_)
   else:
       moq = float(moq_)
-  #print(f"moq {moq}")
-  #print(market)
-  #print(f"MOQ: {moq} Price: {ticker_price * moq}")
-
-  if debug:
-    print(trades_df.loc[:,['market','amount','price','side','side_factor','fee', 'value','cum_amount','price_per_piece']])
-
+ 
+  if verbose:
+    print(trades_df[['market','amount','price','side','side_factor','fee', 'value','cum_amount','price_per_piece']].tail(5))
   # determine ration between current market price and the current paid price per piece
   market_vs_ppp = ((ticker_price/latest_trade['price_per_piece']) -1) * 100
   # determine the buying amount in EUR
@@ -90,7 +99,7 @@ for ticker in ticker_list:
     if abs(market_vs_ppp) >= buy_margin:
       if balance_EUR > order_EUR:
         logger.info (f"{ticker} Buy {order_EUR} EUR ({order_pcs} pieces)")
-        if not debug:
+        if trade:
           response = client.buy_order(ticker, order_pcs)
           logger.info(response)
       else:
@@ -102,7 +111,7 @@ for ticker in ticker_list:
     # market price is higher than current price per piece, potential sell
       if balance_pcs > order_pcs:
         logger.info (f"{ticker} Sell {moq} pieces ({round(order_EUR,2)} EUR)")
-        if not debug:
+        if trade:
           response = client.sell_order(ticker, order_pcs)
           logger.info(response)      
       else:
