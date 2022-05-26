@@ -3,4 +3,5 @@ src/__pycache__/
 
 # App files
 bitvavo.log
-config.ini
+local.config.ini
+src/confighelper.py
