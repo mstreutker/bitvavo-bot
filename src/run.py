@@ -49,8 +49,25 @@ ticker_list = (config['TradeSettings']['tickerlist']).split(',')
 # instantiate a new bitvavo connection
 client = bv.bitvavo_client()
 
+overview_dict = {"market":{},"ppp":{}}
+
 for ticker in ticker_list:
   print (f"Current ticker : {ticker}")
+
+  # get market details
+  market = client.get_market(ticker)
+  #print(market.head())
+  #moq_ = market[market["orderTypes"]=="market"]["minOrderInBaseAsset"].iloc[0]
+
+  # Minimal Order Quantity needs to be float or int (matching market settings), 
+  # otherwise API call fails with 309 error
+  #if moq_.isdigit():
+  #    moq = int(moq_)
+  #else:
+  #    moq = float(moq_)
+  moq = client.get_minimal_order_quantity(market)
+      
+  print (f"Minimal Order Quantity : {moq}")
 
   # get trade history for ticker
   trades_df = client.get_trades (ticker)
@@ -59,23 +76,14 @@ for ticker in ticker_list:
   ticker_price = client.get_ticker_price(ticker)
 
   # get actual balance for all currencies
-  balance_df = client.get_balance()
-  balance_EUR = balance_df[balance_df["symbol"]==currency]['available'].iloc[0]
+  #balance_df = client.get_balance()
+  #print(balance_df)
+  #balance_EUR = balance_df[balance_df["symbol"]==currency]['available'].iloc[0]
+  balance_EUR = client.get_balance(currency)
   print(f"Current Balance in {currency}: {balance_EUR}")
 
   # select the latest, most recent trade
   latest_trade = trades_df.iloc[-1]
-
-  # get market details
-  market = client.get_market(ticker)
-  moq_ = market[market["orderTypes"]=="market"]["minOrderInBaseAsset"].iloc[0]
-
-  # Minimal Order Quantity needs to be float or int (matching market settings), 
-  # otherwise API call fails with 309 error
-  if moq_.isdigit():
-      moq = int(moq_)
-  else:
-      moq = float(moq_)
  
   if verbose:
     print(trades_df[['market','amount','price','side','side_factor','fee', 'value','cum_amount','price_per_piece']].tail(5))
@@ -90,9 +98,12 @@ for ticker in ticker_list:
   order_EUR = ticker_price * moq
   # determine the selling amount in pieces
   #sell_value_pcs = (latest_trade['cum_amount']/100) * sell_amount
-  balance_pcs = float(latest_trade['cum_amount'])
+  balance_pcs = latest_trade['cum_amount']#float(latest_trade['cum_amount'])
 
   logger.info (f"{latest_trade['market']} Market Price : {ticker_price} PPP : {round(latest_trade['price_per_piece'],4)} ({round(market_vs_ppp, 2)}%)")
+
+  overview_dict["market"][ticker] = ticker_price
+  overview_dict["ppp"][ticker] = latest_trade['price_per_piece']
 
   if market_vs_ppp < 0:
     # market price is lower than current price per piece, potential buy
@@ -119,6 +130,6 @@ for ticker in ticker_list:
     else:
       logger.info (f"{ticker} Sell margin too low ({round(market_vs_ppp,2)}% vs {sell_margin}%)")
 
-
+print(overview_dict)
   #response = client.buy_order(ticker, 20.0)
   #print (response)
