@@ -26,32 +26,34 @@ logger.addHandler(stdout_handler)
 # configuration settings
 #
 
-config = confighelper.read_config()
+#config = confighelper.read_config()
+config = confighelper.config('.\local.config.ini')
+
 
 # get the currency of the balance account
-currency = config['TradeSettings']['currency'] 
+#currency = config['TradeSettings']['currency'] 
 
 # market price needs to be x% below
-buy_margin = config.getfloat('TradeSettings','buy_margin')
+#buy_margin = config.getfloat('TradeSettings','buy_margin')
 
 # market price needs to be x% above
-sell_margin = config.getfloat('TradeSettings','sell_margin')
+#sell_margin = config.getfloat('TradeSettings','sell_margin')
 
 # trade = True will trade currencies, False will only log the current state
-trade = config.getboolean('TradeSettings','trade')
+#trade = config.getboolean('TradeSettings','trade')
 
 # check if the logging should be verbose
-verbose = config.getboolean('TradeSettings','verbose')
+#verbose = config.getboolean('TradeSettings','verbose')
 
 # get the list of currencies that need to be monitored
-ticker_list = (config['TradeSettings']['tickerlist']).split(',')
+#ticker_list = (config['TradeSettings']['tickerlist']).split(',')
 
 # instantiate a new bitvavo connection
 client = bv.bitvavo_client()
 
 overview_dict = {"market":{},"ppp":{}}
 
-for ticker in ticker_list:
+for ticker in config.ticker_list:
   print (f"Current ticker : {ticker}")
 
   # get market details
@@ -79,13 +81,13 @@ for ticker in ticker_list:
   #balance_df = client.get_balance()
   #print(balance_df)
   #balance_EUR = balance_df[balance_df["symbol"]==currency]['available'].iloc[0]
-  balance_EUR = client.get_balance(currency)
-  print(f"Current Balance in {currency}: {balance_EUR}")
+  balance_EUR = client.get_balance(config.currency)
+  print(f"Current Balance in {config.currency}: {balance_EUR}")
 
   # select the latest, most recent trade
   latest_trade = trades_df.iloc[-1]
  
-  if verbose:
+  if config.verbose:
     print(trades_df[['market','amount','price','side','side_factor','fee', 'value','cum_amount','price_per_piece']].tail(5))
   # determine ration between current market price and the current paid price per piece
   market_vs_ppp = ((ticker_price/latest_trade['price_per_piece']) -1) * 100
@@ -107,28 +109,28 @@ for ticker in ticker_list:
 
   if market_vs_ppp < 0:
     # market price is lower than current price per piece, potential buy
-    if abs(market_vs_ppp) >= buy_margin:
+    if abs(market_vs_ppp) >= config.buy_margin:
       if balance_EUR > order_EUR:
         logger.info (f"{ticker} Buy {order_EUR} EUR ({order_pcs} pieces)")
-        if trade:
+        if config.trade:
           response = client.buy_order(ticker, order_pcs)
           logger.info(response)
       else:
         logger.info(f"Buy balance too low ({balance_EUR} EUR vs {order_EUR} EUR)")
     else:
-      logger.info (f"{ticker} Buy margin too low ({round(market_vs_ppp,2)}% vs {buy_margin}%)")
+      logger.info (f"{ticker} Buy margin too low ({round(market_vs_ppp,2)}% vs {config.buy_margin}%)")
   elif market_vs_ppp > 0:
-    if abs(market_vs_ppp) >= sell_margin:
+    if abs(market_vs_ppp) >= config.sell_margin:
     # market price is higher than current price per piece, potential sell
       if balance_pcs > order_pcs:
         logger.info (f"{ticker} Sell {moq} pieces ({round(order_EUR,2)} EUR)")
-        if trade:
+        if config.trade:
           response = client.sell_order(ticker, order_pcs)
           logger.info(response)      
       else:
         logger.info (f"Sell balance too low ({balance_pcs} pcs vs {order_pcs} pcs)")
     else:
-      logger.info (f"{ticker} Sell margin too low ({round(market_vs_ppp,2)}% vs {sell_margin}%)")
+      logger.info (f"{ticker} Sell margin too low ({round(market_vs_ppp,2)}% vs {config.sell_margin}%)")
 
 print(overview_dict)
   #response = client.buy_order(ticker, 20.0)
