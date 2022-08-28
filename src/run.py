@@ -1,7 +1,25 @@
 import bitvavo as bv
 import logging
 import confighelper
+import emailhelper
 import sys
+import matplotlib.pyplot as plt
+import pandas as pd
+import io
+import datetime
+
+
+def df_to_plot_table (df):
+  fig, ax = plt.subplots()
+
+  # hide axes
+  fig.patch.set_visible(False)
+  ax.axis('off')
+  ax.axis('tight')
+  ax.table(cellText=df.values, colLabels=df.columns,  loc='center')
+  fig.tight_layout()
+  return fig
+
 
 # configure logging settings
 logger = logging.getLogger()
@@ -25,7 +43,8 @@ config = confighelper.config('.\local.config.ini')
 # instantiate bitvavo client
 client = bv.bitvavo_client()
 
-overview_dict = {"market":{},"ppp":{}}
+# create empty dictionary to store overview results
+overview_dict = {"market":{},"ppp":{},"margin":{},"order_pcs":{},"balance_pcs":{}}
 
 # run through ticker list
 for ticker in config.ticker_list:
@@ -67,9 +86,6 @@ for ticker in config.ticker_list:
 
   logger.info (f"{latest_trade['market']} Market Price : {ticker_price} PPP : {round(latest_trade['price_per_piece'],4)} ({round(market_vs_ppp, 2)}%)")
 
-  overview_dict["market"][ticker] = ticker_price
-  overview_dict["ppp"][ticker] = latest_trade['price_per_piece']
-
   if market_vs_ppp < 0:
     # market price is lower than current price per piece, potential buy
     if abs(market_vs_ppp) >= config.buy_margin:
@@ -95,5 +111,30 @@ for ticker in config.ticker_list:
     else:
       logger.info (f"{ticker} Sell margin too low ({round(market_vs_ppp,2)}% vs {config.sell_margin}%)")
 
-print(overview_dict)
+  overview_dict["market"][ticker] = round(ticker_price,2)
+  overview_dict["ppp"][ticker] = round(latest_trade['price_per_piece'],2)
+  overview_dict["margin"][ticker] = f"{round(market_vs_ppp, 2)}%"
+  overview_dict["order_pcs"][ticker] = order_pcs
+  overview_dict["balance_pcs"][ticker] = round(balance_pcs, 6)
 
+overview_df = pd.DataFrame(overview_dict).reset_index()
+print (overview_df)
+
+# convert the dataframe to a table plot
+fig = df_to_plot_table(overview_df)
+
+# convert the image to bytes
+buf = io.BytesIO()
+plt.savefig(buf, format='jpg')
+buf.seek(0)
+data = buf.read()
+
+# prepare email
+now = datetime.datetime.now()
+email = emailhelper.email_client()
+sendTo = email.recipient
+emailSubject = f"Bitvavo overview {now.strftime('%Y-%m-%d %H:%M:%S')}"
+emailContent = f"Balance {config.currency}: {balance_EUR}"
+
+# send email
+email.sendmail(sendTo, emailSubject, emailContent, data)
