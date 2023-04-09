@@ -5,3 +5,4 @@ src/__pycache__/
 bitvavo.log
 local.config.ini
 src/confighelper.py
+*.json

@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import io
 import datetime
-
+import json
+import os
+from datetime import datetime
 
 def df_to_plot_table (df):
   fig, ax = plt.subplots()
@@ -54,7 +56,76 @@ for ticker in config.ticker_list:
   moq = client.get_minimal_order_quantity(market)
 
   # get trade history for ticker
-  trades_df = client.get_trades (ticker)
+  trades_df, trades_json = client.get_trades (ticker)
+
+  print (trades_json)
+  print(trades_df)
+
+  trades_df.to_csv(f"{ticker}_df.csv", sep=';')
+  pd.DataFrame(trades_json).to_csv(f"{ticker}_org.csv", sep=';')
+
+  data = trades_json
+  # Group the data by month
+  groups = {}
+  for item in data:    
+      timestamp = datetime.fromtimestamp(item['timestamp']/1000)
+      month = timestamp.strftime('%Y-%m')
+      if month not in groups:
+          groups[month] = []
+      groups[month].append(item)
+
+  output_dir = f'{ticker}'
+
+  # Create the output directory if it doesn't already exist
+  if not os.path.exists(f'{output_dir}'):
+      os.makedirs(f'{output_dir}')
+
+  # # Write each group to a separate file
+  # for month, items in groups.items():
+  #     filename = f'output/{month}.json'
+  #     with open(filename, 'w') as f:
+  #         json.dump(items, f)
+
+  # Check if the file for the most recent month already exists
+  existing_files = os.listdir(output_dir)
+  existing_files_sorted = sorted(existing_files, key=lambda x: x.split('.')[0], reverse=True)
+  if existing_files_sorted:
+      latest_filename = existing_files_sorted[0]
+      latest_month = latest_filename.replace('.json', '')
+  
+  # Write each group to a separate file
+  for month, items in groups.items():
+    if not existing_files or month >= latest_month:
+      print(f'Writing {month}')
+      filename = f'{output_dir}/{month}.json'
+      with open(filename, 'w') as f:
+          json.dump(items, f)
+    else:
+      print(f'Skipping {month} (file is up-to-date)')
+  
+
+  # Get a list of all the filenames in the output directory
+  filenames = os.listdir(output_dir)
+
+  # Initialize an empty list to store the DataFrames
+  dfs = []
+
+  # Loop over the filenames and read each file into a DataFrame
+  for filename in filenames:
+      filepath = os.path.join(output_dir, filename)
+      df = pd.read_json(filepath)
+      dfs.append(df)
+
+  # Concatenate all of the DataFrames into a single one
+  df_all = pd.concat(dfs, ignore_index=True)
+
+  # Sort the resulting DataFrame on the timestamp in ascending order
+  df_all = df_all.sort_values(by='timestamp')
+
+  # Print the resulting DataFrame
+  print(df_all)
+  print(trades_df)
+
 
   if config.verbose:
     # if running in verbose mode, show the last 5 transactions
@@ -130,11 +201,11 @@ buf.seek(0)
 data = buf.read()
 
 # prepare email
-now = datetime.datetime.now()
+now = datetime.now()
 email = emailhelper.email_client()
 sendTo = email.recipient
 emailSubject = f"Bitvavo overview {now.strftime('%Y-%m-%d %H:%M:%S')}"
 emailContent = f"Balance {config.currency}: {balance_EUR}"
 
 # send email
-email.sendmail(sendTo, emailSubject, emailContent, data)
+#email.sendmail(sendTo, emailSubject, emailContent, data)

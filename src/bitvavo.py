@@ -85,7 +85,7 @@ class bitvavo_client:
         trades_df['cum_amount'] = trades_iterrows
         trades_df['price_per_piece'] = price_per_piece_iterrows
 
-        return trades_df
+        return trades_df, response
 
     def get_ticker_price (self, ticker):
         """Return the current price for ticker."""
