@@ -6,3 +6,4 @@ bitvavo.log
 local.config.ini
 src/confighelper.py
 *.json
+*.csv
