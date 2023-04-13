@@ -41,102 +41,102 @@ class bitvavo_client:
 
     def get_trades(self, ticker):
         response = self.bitvavo.trades(ticker, {})
-        # load the trades, reverse the order for easier cumulative rollup
-        trades_df = pd.DataFrame(response).iloc[::-1]
-        # put the appropriate columns to numeric
-        trades_df[['amount', 'price', 'fee']] = trades_df[['amount', 'price', 'fee']].apply(pd.to_numeric)
+        # # load the trades, reverse the order for easier cumulative rollup
+        # trades_df = pd.DataFrame(response).iloc[::-1]
+        # # put the appropriate columns to numeric
+        # trades_df[['amount', 'price', 'fee']] = trades_df[['amount', 'price', 'fee']].apply(pd.to_numeric)
 
-        trades_df['value'] = trades_df.apply (
-        lambda row: self.calc_value(row["amount"],row["price"]),
-        axis=1
-        )
-        trades_df['side_factor'] = trades_df.apply (
-        lambda row: self.calc_side_factor(row["side"]),
-        axis=1
-        )
+        # trades_df['value'] = trades_df.apply (
+        # lambda row: self.calc_value(row["amount"],row["price"]),
+        # axis=1
+        # )
+        # trades_df['side_factor'] = trades_df.apply (
+        # lambda row: self.calc_side_factor(row["side"]),
+        # axis=1
+        # )
 
 
-        #print(response)
-        #trades["paid"] = trades["amount"] * trades["price"]
-        #trades["value"]=0
-        #idx_value = trades.columns.get_loc("value")
-        trades_iterrows = []
-        price_per_piece_iterrows = []
-        cum_amount = 0
-        previous_price_per_piece = 0
-        previous_cum_amount = 0
-        for index, row in trades_df.iterrows():
-            cum_amount += row["amount"] * row["side_factor"]
+        # #print(response)
+        # #trades["paid"] = trades["amount"] * trades["price"]
+        # #trades["value"]=0
+        # #idx_value = trades.columns.get_loc("value")
+        # trades_iterrows = []
+        # price_per_piece_iterrows = []
+        # cum_amount = 0
+        # previous_price_per_piece = 0
+        # previous_cum_amount = 0
+        # for index, row in trades_df.iterrows():
+        #     cum_amount += row["amount"] * row["side_factor"]
             
-            # Alternative logic for the first row
-            if index == len(trades_df.index) -1:
-                price_per_piece = (row['value'] + row['fee']) / cum_amount 
-            else:
-                if row['side'] == 'buy':
-                    price_per_piece = ( (row['value'] + row['fee'])+ (previous_price_per_piece * previous_cum_amount)) / cum_amount
-                else: #price_per_piece = float(previous_row['amount'])
-                    price_per_piece = previous_price_per_piece + (row['fee'] / cum_amount)
+        #     # Alternative logic for the first row
+        #     if index == len(trades_df.index) -1:
+        #         price_per_piece = (row['value'] + row['fee']) / cum_amount 
+        #     else:
+        #         if row['side'] == 'buy':
+        #             price_per_piece = ( (row['value'] + row['fee'])+ (previous_price_per_piece * previous_cum_amount)) / cum_amount
+        #         else: #price_per_piece = float(previous_row['amount'])
+        #             price_per_piece = previous_price_per_piece + (row['fee'] / cum_amount)
 
-            previous_cum_amount = cum_amount
-            previous_price_per_piece = price_per_piece
-            trades_iterrows.append(float(cum_amount))
-            price_per_piece_iterrows.append(price_per_piece)
-            #trades.iloc[index]['value'] = 10#float(row["amount"]) * float(row["price"])
-            #trades.iloc[index, idx_value]=float(row["amount"]) * float(row["price"])
+        #     previous_cum_amount = cum_amount
+        #     previous_price_per_piece = price_per_piece
+        #     trades_iterrows.append(float(cum_amount))
+        #     price_per_piece_iterrows.append(price_per_piece)
+        #     #trades.iloc[index]['value'] = 10#float(row["amount"]) * float(row["price"])
+        #     #trades.iloc[index, idx_value]=float(row["amount"]) * float(row["price"])
 
 
-        #  print(index)
-        #trades.iloc[0]["value"] =10
-        trades_df['cum_amount'] = trades_iterrows
-        trades_df['price_per_piece'] = price_per_piece_iterrows
+        # #  print(index)
+        # #trades.iloc[0]["value"] =10
+        # trades_df['cum_amount'] = trades_iterrows
+        # trades_df['price_per_piece'] = price_per_piece_iterrows
 
-        return trades_df, response
+        return response
     
-    def calc_trades(self, data):
+    # def calc_trades(self, data):
   
-        # load the trades, reverse the order for easier cumulative rollup
-        #trades_df = pd.DataFrame(data).iloc[::-1]
-        trades_df = data
-        # put the appropriate columns to numeric
-        trades_df[['amount', 'price', 'fee']] = trades_df[['amount', 'price', 'fee']].apply(pd.to_numeric)
+    #     # load the trades, reverse the order for easier cumulative rollup
+    #     #trades_df = pd.DataFrame(data).iloc[::-1]
+    #     trades_df = data
+    #     # put the appropriate columns to numeric
+    #     trades_df[['amount', 'price', 'fee']] = trades_df[['amount', 'price', 'fee']].apply(pd.to_numeric)
 
-        trades_df['value'] = trades_df.apply (
-        lambda row: self.calc_value(row["amount"],row["price"]),
-        axis=1
-        )
-        trades_df['side_factor'] = trades_df.apply (
-        lambda row: self.calc_side_factor(row["side"]),
-        axis=1
-        )
+    #     trades_df['value'] = trades_df.apply (
+    #     lambda row: self.calc_value(row["amount"],row["price"]),
+    #     axis=1
+    #     )
+    #     trades_df['side_factor'] = trades_df.apply (
+    #     lambda row: self.calc_side_factor(row["side"]),
+    #     axis=1
+    #     )
 
-        trades_iterrows = []
-        price_per_piece_iterrows = []
-        cum_amount = 0
-        previous_price_per_piece = 0
-        previous_cum_amount = 0
-        for index, row in trades_df.iterrows():
-            cum_amount += row["amount"] * row["side_factor"]
+    #     trades_iterrows = []
+    #     price_per_piece_iterrows = []
+    #     cum_amount = 0
+    #     previous_price_per_piece = 0
+    #     previous_cum_amount = 0
+    #     for index, row in trades_df.iterrows():
+    #         cum_amount += row["amount"] * row["side_factor"]
             
-            # Alternative logic for the first row
-            if index == len(trades_df.index) -1:
-                price_per_piece = (row['value'] + row['fee']) / cum_amount 
-            else:
-                if row['side'] == 'buy':
-                    price_per_piece = ( (row['value'] + row['fee'])+ (previous_price_per_piece * previous_cum_amount)) / cum_amount
-                else: #price_per_piece = float(previous_row['amount'])
-                    price_per_piece = previous_price_per_piece + (row['fee'] / cum_amount)
+    #         # Alternative logic for the first row
+    #         if index == len(trades_df.index) -1:
+    #             price_per_piece = (row['value'] + row['fee']) / cum_amount 
+    #         else:
+    #             if row['side'] == 'buy':
+    #                 price_per_piece = ( (row['value'] + row['fee'])+ (previous_price_per_piece * previous_cum_amount)) / cum_amount
+    #             else: #price_per_piece = float(previous_row['amount'])
+    #                 price_per_piece = previous_price_per_piece + (row['fee'] / cum_amount)
 
-            previous_cum_amount = cum_amount
-            previous_price_per_piece = price_per_piece
-            trades_iterrows.append(float(cum_amount))
-            price_per_piece_iterrows.append(price_per_piece)
+    #         previous_cum_amount = cum_amount
+    #         previous_price_per_piece = price_per_piece
+    #         trades_iterrows.append(float(cum_amount))
+    #         price_per_piece_iterrows.append(price_per_piece)
  
-        trades_df['cum_amount'] = trades_iterrows
-        trades_df['price_per_piece'] = price_per_piece_iterrows
+    #     trades_df['cum_amount'] = trades_iterrows
+    #     trades_df['price_per_piece'] = price_per_piece_iterrows
 
-        return trades_df   
+    #     return trades_df   
 
-    def calc_trades2(self, data):
+    def calc_trades(self, data):
         trades_df = data
         trades_df[['amount', 'price', 'fee']] = trades_df[['amount', 'price', 'fee']].astype(float)
 
@@ -239,12 +239,12 @@ class bitvavo_client:
         # Write each group to a separate file
         for month, items in groups.items():
             if not existing_files or month >= latest_month:
-                print(f'Writing {month}')
+                print(f'Writing {output_dir}/{month}')
                 filename = f'{output_dir}/{month}.json'
                 with open(filename, 'w') as f:
                     json.dump(items, f)
             else:
-                print(f'Skipping {month} (file is up-to-date)')
+                print(f'Skipping {output_dir}/{month} (file is up-to-date)')
 
     def get_df_from_trades_json(self, output_dir):
         # Get a list of all the filenames in the output directory
@@ -267,3 +267,12 @@ class bitvavo_client:
         df_all = df_all.reset_index(drop=True)
 
         return df_all
+    
+    # def perform_trades (self, trades_df, currency):
+    #     trades_buy = trades_df[trades_df['action']=="buy"]
+    #     trades_sell = trades_df[trades_df['action']=="sell"]
+
+    #     for index, row in trades_buy.iterrows():
+    #         # get actual balance for the configured currency
+    #         balance_EUR = self.get_balance(currency)
+    #         response = self.buy_order(row["ticker"], row["order_pcs"])
