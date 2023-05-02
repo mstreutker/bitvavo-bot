@@ -3,24 +3,9 @@ import logging
 import confighelper
 import emailhelper
 import sys
-import matplotlib.pyplot as plt
 import pandas as pd
-import io
 import datetime
-import json
-import os
 from datetime import datetime
-
-def df_to_plot_table (df):
-  fig, ax = plt.subplots()
-
-  # hide axes
-  fig.patch.set_visible(False)
-  ax.axis('off')
-  ax.axis('tight')
-  ax.table(cellText=df.values, colLabels=df.columns,  loc='center')
-  fig.tight_layout()
-  return fig
 
 
 # configure logging settings
@@ -72,12 +57,6 @@ for ticker in config.ticker_list:
   # get actual price for ticker
   ticker_price = client.get_ticker_price(ticker)
 
-  # get actual balance for the configured currency
-  #balance_EUR = client.get_balance(config.currency)
-
-  #logger.info (f"Balance {config.currency}: {balance_EUR}")
-  #logger.info (f"{ticker} Minimal Order Quantity : {moq}")
-
   # select the latest, most recent trade
   latest_trade = df_all.iloc[-1]
  
@@ -105,14 +84,7 @@ for ticker in config.ticker_list:
     if abs(market_vs_ppp) >= config.sell_margin:
     # market price is higher than current price per piece, potential sell
       if balance_pcs > order_pcs:
-        action = "sell"
- 
-  # overview_dict["market"][ticker] = round(ticker_price,2)
-  # overview_dict["ppp"][ticker] = round(latest_trade['price_per_piece'],2)
-  # overview_dict["margin"][ticker] = f"{round(market_vs_ppp, 2)}%"
-  # overview_dict["order_pcs"][ticker] = order_pcs
-  # overview_dict["balance_pcs"][ticker] = round(balance_pcs, 6)
-  
+        action = "sell" 
 
   data = {
     "ticker": ticker,
@@ -122,7 +94,7 @@ for ticker in config.ticker_list:
     "margin": round(market_vs_ppp, 4),
     "order_pcs": order_pcs,
     "balance_pcs": round(balance_pcs, 6),
-    "order_EUR": order_EUR,
+    "order_EUR": round(order_EUR, 6),
     "action": action
   }
   ticker_data.append(data)
@@ -136,8 +108,6 @@ trades_buy = overview_df[overview_df['action']=="buy"].sort_values(by='margin')
 trades_sell = overview_df[overview_df['action']=="sell"]
 
 for index, row in trades_sell.iterrows():
-  # get actual balance for the configured currency
-  # balance_EUR = client.get_balance(config.currency)
   ticker = row["ticker"]
   balance_pcs = row["balance_pcs"]
   order_pcs = row["order_pcs"]
@@ -167,41 +137,12 @@ for index, row in trades_buy.iterrows():
   else:
     logger.info(f"{ticker} Buy balance too low ({balance_EUR} EUR vs {order_EUR} EUR)")
 
-#  if market_vs_ppp < 0:
-#     # market price is lower than current price per piece, potential buy
-#     if abs(market_vs_ppp) >= config.buy_margin:
-#       if balance_EUR > order_EUR:
-#         logger.info (f"{ticker} Buy {order_EUR} EUR ({order_pcs} pieces)")
-#         action = "buy"
-#         if config.trade:
-#           response = client.buy_order(ticker, order_pcs)
-#           logger.info(response)
-#       else:
-#         logger.info(f"Buy balance too low ({balance_EUR} EUR vs {order_EUR} EUR)")
-#     else:
-#       logger.info (f"{ticker} Buy margin too low ({round(market_vs_ppp,2)}% vs {config.buy_margin}%)")
-#   elif market_vs_ppp > 0:
-#     if abs(market_vs_ppp) >= config.sell_margin:
-#     # market price is higher than current price per piece, potential sell
-#       if balance_pcs > order_pcs:
-#         logger.info (f"{ticker} Sell {moq} pieces ({round(order_EUR,2)} EUR)")
-#         action = "sell"
-#         if config.trade:
-#           response = client.sell_order(ticker, order_pcs)
-#           logger.info(response)      
-#       else:
-#         logger.info (f"Sell balance too low ({balance_pcs} pcs vs {order_pcs} pcs)")
-#     else:
-#       logger.info (f"{ticker} Sell margin too low ({round(market_vs_ppp,2)}% vs {config.sell_margin}%)")
+email_helper = emailhelper.email_helper()
 
-# convert the dataframe to a table plot
-fig = df_to_plot_table(overview_df)
+data = []
 
-# convert the image to bytes
-buf = io.BytesIO()
-plt.savefig(buf, format='jpg')
-buf.seek(0)
-data = buf.read()
+data.append(email_helper.df_to_plot_table(overview_df))
+data.append(email_helper.df_to_plot_bar(overview_df))
 
 # prepare email
 now = datetime.now()
@@ -211,4 +152,4 @@ emailSubject = f"Bitvavo overview {now.strftime('%Y-%m-%d %H:%M:%S')}"
 emailContent = f"Balance {config.currency}: {balance_EUR}"
 
 # send email
-#email.sendmail(sendTo, emailSubject, emailContent, data)
+email.sendmail(sendTo, emailSubject, emailContent, data)
