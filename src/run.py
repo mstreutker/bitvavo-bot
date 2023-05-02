@@ -113,6 +113,11 @@ for index, row in trades_sell.iterrows():
   order_pcs = row["order_pcs"]
   order_EUR = row["order_EUR"]
 
+  if order_pcs > 1:
+    order_pcs = int(order_pcs)
+  else:
+    order_pcs = float(order_pcs)
+
   if balance_pcs > order_pcs:
     logger.info (f"{ticker} Sell {order_pcs} pieces ({round(order_EUR,2)} EUR)")
     if config.trade:
@@ -127,6 +132,12 @@ for index, row in trades_buy.iterrows():
   ticker = row["ticker"]
   order_EUR = row["order_EUR"]
   order_pcs = row["order_pcs"]
+
+  if order_pcs > 1:
+    order_pcs = int(order_pcs)
+  else:
+    order_pcs = float(order_pcs)
+
 
   if balance_EUR > order_EUR:
     logger.info (f"{ticker} Buy {order_EUR} EUR ({order_pcs} pieces)")
