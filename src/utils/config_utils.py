@@ -50,6 +50,25 @@ class BitvavoConfig:
     def __hash__(self):
         return hash((self.apikey, self.apisecret, self.resturl, self.wsurl, self.accesswindow, self.debugging))  
 
+class EmailConfig:
+    def __init__(self, smtp_server, smtp_port, username, password, recipient):
+        self.smtp_server = smtp_server
+        self.smtp_port = smtp_port
+        self.username = username
+        self.password = password
+        self.recipient = recipient
+
+    def __eq__(self, other):
+        if isinstance(other, EmailConfig):          
+            return (self.smtp_server == other.smtp_server and
+                    self.smtp_port == other.smtp_port and
+                    self.username == other.username and
+                    self.password == other.password and
+                    self.recipient == other.recipient)
+        return False
+
+    def __hash__(self):
+        return hash((self.smtp_server, self.smtp_port, self.username, self.password, self.recipient))  
 
 
 def read_ticker_config(config_file_path)->list[TickerConfig]:
@@ -85,7 +104,7 @@ def read_bitvavo_config(config_file_path)->BitvavoConfig:
     Reads configuration from an INI file and converts it into a list of BitvavoConfig instance.
     
     :param config_file_path: Path to the configuration INI file.
-    :return: List of BitvavoConfig instance.
+    :return: BitvavoConfig instance.
     """
     # Initialize the configparser
     config = configparser.ConfigParser()
@@ -106,3 +125,29 @@ def read_bitvavo_config(config_file_path)->BitvavoConfig:
     )
   
     return bitvavo_config
+
+def read_email_config(config_file_path)->BitvavoConfig:
+    """
+    Reads configuration from an INI file and converts it into a list of EmailConfig instance.
+    
+    :param config_file_path: Path to the configuration INI file.
+    :return: EmailConfig instance.
+    """
+    # Initialize the configparser
+    config = configparser.ConfigParser()
+
+    # Read the configuration from the INI file
+    config.read_file(config_file_path)
+
+    # Read the BitvavoSettings section
+    settings = config["EmailSettings"]
+
+    email_config = EmailConfig(
+        smtp_server=settings['smtp_server'],
+        smtp_port = settings['smtp_port'],
+        username = settings['username'],
+        password = settings['password'],
+        recipient = settings['recipient'],
+    )
+  
+    return email_config
