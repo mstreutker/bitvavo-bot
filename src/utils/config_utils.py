@@ -28,7 +28,31 @@ class TickerConfig:
         return hash((self.ticker, self.buy_margin, self.sell_margin, self.currency, self.trade))    
 
 
-def read_ticker_config(config_file_path):
+class BitvavoConfig:
+    def __init__(self, apikey, apisecret, resturl, wsurl, accesswindow, debugging):
+        self.apikey = apikey
+        self.apisecret = apisecret
+        self.resturl = resturl
+        self.wsurl = wsurl
+        self.accesswindow = accesswindow
+        self.debugging = debugging
+
+    def __eq__(self, other):
+        if isinstance(other, BitvavoConfig):          
+            return (self.apikey == other.apikey and
+                    self.apisecret == other.apisecret and
+                    self.resturl == other.resturl and
+                    self.wsurl == other.wsurl and
+                    self.accesswindow == other.accesswindow and
+                    self.debugging == other.debugging)
+        return False
+
+    def __hash__(self):
+        return hash((self.apikey, self.apisecret, self.resturl, self.wsurl, self.accesswindow, self.debugging))  
+
+
+
+def read_ticker_config(config_file_path)->list[TickerConfig]:
     """
     Reads configuration from an INI file and converts it into a list of TickerConfig instances.
     
@@ -55,3 +79,30 @@ def read_ticker_config(config_file_path):
         configs.append(ticker_config)
     
     return configs
+
+def read_bitvavo_config(config_file_path)->BitvavoConfig:
+    """
+    Reads configuration from an INI file and converts it into a list of BitvavoConfig instance.
+    
+    :param config_file_path: Path to the configuration INI file.
+    :return: List of BitvavoConfig instance.
+    """
+    # Initialize the configparser
+    config = configparser.ConfigParser()
+
+    # Read the configuration from the INI file
+    config.read_file(config_file_path)
+
+    # Read the BitvavoSettings section
+    settings = config["BitvavoSettings"]
+
+    bitvavo_config = BitvavoConfig(
+        apikey=settings['apikey'],
+        apisecret = settings['apisecret'],
+        resturl = settings['resturl'],
+        wsurl = settings['wsurl'],
+        accesswindow = settings['accesswindow'],
+        debugging = config.getboolean('BitvavoSettings','debugging'),
+    )
+  
+    return bitvavo_config
