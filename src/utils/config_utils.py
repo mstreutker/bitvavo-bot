@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import configparser
-import pandas as pd
+import os
 
 class TickerConfig:
     def __init__(self, ticker, buy_margin, sell_margin, currency, trade):
@@ -71,6 +71,11 @@ class EmailConfig:
         return hash((self.smtp_server, self.smtp_port, self.username, self.password, self.recipient))  
 
 
+def get_absolute_filepath(relative_path)->str:
+    current_path = os.getcwd()
+    absolute_path = os.path.join(current_path, relative_path)
+    return absolute_path
+
 def read_ticker_config(config_file_path)->list[TickerConfig]:
     """
     Reads configuration from an INI file and converts it into a list of TickerConfig instances.
@@ -82,7 +87,7 @@ def read_ticker_config(config_file_path)->list[TickerConfig]:
     config = configparser.ConfigParser()
 
     # Read the configuration from the INI file
-    config.read_file(config_file_path)
+    config.read(config_file_path)
 
     # Transform the INI structure into a list of TickerConfig instances
     configs = []
@@ -110,7 +115,7 @@ def read_bitvavo_config(config_file_path)->BitvavoConfig:
     config = configparser.ConfigParser()
 
     # Read the configuration from the INI file
-    config.read_file(config_file_path)
+    config.read(config_file_path)
 
     # Read the BitvavoSettings section
     settings = config["BitvavoSettings"]
@@ -137,7 +142,7 @@ def read_email_config(config_file_path)->BitvavoConfig:
     config = configparser.ConfigParser()
 
     # Read the configuration from the INI file
-    config.read_file(config_file_path)
+    config.read(config_file_path)
 
     # Read the BitvavoSettings section
     settings = config["EmailSettings"]
