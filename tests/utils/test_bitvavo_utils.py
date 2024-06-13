@@ -51,3 +51,43 @@ def test_get_ticker_price(mock_bitvavo, bitvavo_client):
     expected_price = 62524.0
     price = bitvavo_client.get_ticker_price(ticker)
     assert price == expected_price
+
+def test_get_market_moq_float(mock_bitvavo, bitvavo_client):
+    file_path = get_absolute_filepath(r'tests\utils\resources\test_bitvavo_market.json')
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+
+    # Find the dictionary where 'market' is 'BTC-EUR'
+    btc_eur_market = None
+    for item in data:
+        if item['market'] == 'BTC-EUR':
+            btc_eur_market = item
+            break
+
+    mock_bitvavo.markets.return_value = btc_eur_market
+
+    # Test for BTC-EUR
+    ticker = 'BTC-EUR'
+    expected_moq = 0.0001
+    market_df, moq = bitvavo_client.get_market(ticker)
+    assert moq == expected_moq
+
+def test_get_market_moq_int(mock_bitvavo, bitvavo_client):
+    file_path = get_absolute_filepath(r'tests\utils\resources\test_bitvavo_market.json')
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+
+    # Find the dictionary where 'market' is 'XYO-EUR'
+    xyo_eur_market = None
+    for item in data:
+        if item['market'] == 'XYO-EUR':
+            xyo_eur_market = item
+            break
+
+    mock_bitvavo.markets.return_value = xyo_eur_market
+
+    # Test for XYO-EUR
+    ticker = 'XYO-EUR'
+    expected_moq = 600
+    market_df, moq = bitvavo_client.get_market(ticker)
+    assert moq == expected_moq
