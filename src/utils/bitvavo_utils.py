@@ -35,3 +35,9 @@ class BitvavoClient:
                 break
 
         return available
+    
+    def get_ticker_price (self, ticker):
+        """Return the current price for ticker."""
+        ticker_price = self.bitvavo.tickerPrice({'market':ticker})
+        print (ticker_price)
+        return float(ticker_price['price'])

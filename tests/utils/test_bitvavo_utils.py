@@ -39,4 +39,15 @@ def test_get_balance(mock_bitvavo, bitvavo_client):
     balance = bitvavo_client.get_balance(ticker)
     assert balance == expected_balance    
  
+def test_get_ticker_price(mock_bitvavo, bitvavo_client):
+    file_path = get_absolute_filepath(r'tests\utils\resources\test_bitvavo_tickerprice.json')
+    with open(file_path, 'r') as file:
+        data = json.load(file)
 
+    mock_bitvavo.tickerPrice.return_value = data
+
+    # Test for BTC-EUR price
+    ticker = 'BTC-EUR'
+    expected_price = 62524.0
+    price = bitvavo_client.get_ticker_price(ticker)
+    assert price == expected_price
