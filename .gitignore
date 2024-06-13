@@ -1,5 +1,6 @@
 # Python cache files
 src/__pycache__/
+*.pyc
 
 # App files
 bitvavo.log
@@ -7,3 +8,4 @@ local.config.ini
 src/confighelper.py
 *.json
 *.csv
+
