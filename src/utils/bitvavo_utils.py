@@ -44,7 +44,7 @@ class BitvavoClient:
     
     def get_market(self, ticker):
         response = self.bitvavo.markets({'market':ticker})
-        print(response)
+
         # Get the market specific settings
         market_df = pd.DataFrame(response)
         market_df = market_df[market_df["orderTypes"]=="market"]
@@ -60,3 +60,9 @@ class BitvavoClient:
             minimal_order_qty = float(minimal_order_qty)
 
         return market_df, minimal_order_qty
+
+    def get_trades(self, ticker):
+        trades_json = self.bitvavo.trades(ticker, {})
+        trades_df = pd.DataFrame(trades_json)
+
+        return trades_json, trades_df
