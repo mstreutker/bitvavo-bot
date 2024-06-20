@@ -4,6 +4,7 @@ from src.utils.config_utils import get_absolute_filepath
 import json
 from unittest.mock import  patch
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
 @pytest.fixture
 def mock_bitvavo():
@@ -93,8 +94,8 @@ def test_get_market_moq_int(mock_bitvavo, bitvavo_client):
     market_df, moq = bitvavo_client.get_market(ticker)
     assert moq == expected_moq
 
-def test_get_trades(mock_bitvavo, bitvavo_client):
-    file_path = get_absolute_filepath(r'tests\utils\resources\test_bitvavo_trades_test.json')
+def test_calc_trades(mock_bitvavo, bitvavo_client):
+    file_path = get_absolute_filepath(r'tests\utils\resources\test_bitvavo_trades.json')
     with open(file_path, 'r') as file:
         data = json.load(file)
 
@@ -102,69 +103,44 @@ def test_get_trades(mock_bitvavo, bitvavo_client):
 
     ticker = 'BTC-EUR'
     trades_json, trades_df = bitvavo_client.get_trades(ticker)
+    trades_calc_df, latest_trade_df = bitvavo_client.calc_trades(trades_df)
     
-    #trades_df["ticker"]="ticker"
-    trades_df = trades_df.sort_values(by='timestamp')
-    trades_df = trades_df.reset_index(drop=True)
+    result_df = latest_trade_df[['_timestamp','amount','camount', 'price', 'fee', 'cfee','operator','total','ctotal','price_per_piece']]
 
-    trades_df[['amount', 'price', 'fee']] = trades_df[['amount', 'price', 'fee']].astype(float)
-    trades_df["operator"] = trades_df.apply(lambda x: (1 if x['side'] == 'buy' else -1), axis=1)
-    trades_df['amount'] = trades_df['amount'] * trades_df["operator"]
+    # # Set pandas option to display all columns
+    # pd.set_option('display.max_columns', None)
+    # # Set pandas option to increase the display width
+    # pd.set_option('display.width', 1000)
 
-    trades_df["_timestamp"] = pd.to_datetime(trades_df['timestamp'], unit='ms')
-    trades_df["total"] = (trades_df["amount"] * trades_df["price"]) + trades_df["fee"]
+    # print(result_df)
+    expected_json = [
+        {'_timestamp': '2024-06-16 09:09:25.590000', 
+         'amount': '5.0', 
+         'camount': '17.0',
+         'price': '0.6',
+         'fee': '0.005',
+         'cfee': '0.025',
+         'operator': '1',
+         'total': '3.005',
+         'ctotal': '11.0152',
+         'price_per_piece': '0.647953',
+         }
+    ]
 
-    price_per_piece = 0
-    camount = 0
-    ctotal = 0
-    cfee = 0
+    schema = {
+        "_timestamp": "datetime64[ns]",
+        "amount": "float64",
+        "camount": "float64",
+        "price": "float64",
+        "fee": "float64",
+        "cfee": "float64",
+        "operator": "int64",
+        "total": "float64",
+        "ctotal": "float64",
+        "price_per_piece": "float64" 
+    }
 
-    # iterate over the rows using vectorized operations
-    for i in range(len(trades_df)):
-        row = trades_df.iloc[i]
-        if i == 0:
-            camount = row["amount"]
-            ctotal = row["total"] 
-            cfee = row["fee"]
-            price_per_piece = (ctotal) / camount
-        else:
-            if row['side'] == 'buy':
-                #price_per_piece = ((row['value'] + row['fee']) + (previous_price_per_piece * previous_cum_amount)) / cum_amount.iloc[i]
-                camount += row["amount"]
-                ctotal += row["total"]
-                cfee += row["fee"]
-                price_per_piece = (ctotal) / camount
-            else:
-                #price_per_piece = previous_price_per_piece + (row['fee'] / cum_amount.iloc[i])
-                camount += row["amount"]
-                cfee += row["fee"]
-                price_per_piece += (row["fee"] / camount)
-                ctotal = camount * price_per_piece
+    expected_data = pd.DataFrame(expected_json).astype(schema)
 
-        trades_df.at[i, 'price_per_piece'] = price_per_piece
-        trades_df.at[i, 'camount'] = camount
-        trades_df.at[i, 'cfee'] = cfee
-        trades_df.at[i, 'ctotal'] = ctotal
-        # previous_cum_amount = cum_amount.iloc[i]
-        # previous_price_per_piece = price_per_piece
-
-
-
-
-    # trades_agg = trades_df.groupby(['ticker','side'])[["total","amount", "fee"]].sum()
-    # trades_agg["ppp"] = trades_agg["total"] / trades_agg["amount"] 
-
-    # trades_total = trades_agg.groupby(['ticker'])[["total","amount"]].sum()
-    # trades_total["ppp"] = trades_total["total"] / trades_total["amount"] 
-#df_all = df_all.sort_values(by='timestamp')
-
-    # Set pandas option to display all columns
-    pd.set_option('display.max_columns', None)
-    # Set pandas option to increase the display width
-    pd.set_option('display.width', 1000)
-
-    print(trades_df[['_timestamp','amount','camount', 'price', 'fee', 'cfee','operator','total','ctotal','price_per_piece']])
-    # print (trades_agg)
-    # print (trades_total)
-
-    assert False
+    assert_frame_equal (result_df, expected_data)
+    
