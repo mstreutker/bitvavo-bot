@@ -4,6 +4,8 @@ from python_bitvavo_api.bitvavo import Bitvavo
 from src.utils.config_utils import read_bitvavo_config, TickerConfig
 from src.utils.references import BITVAVO_CONFIG
 import pandas as pd
+import numpy as np
+from decimal import Decimal, getcontext
 
 class BitvavoClient:
     def __init__ (self):
@@ -75,7 +77,7 @@ class BitvavoClient:
         trades_df = trades_df.reset_index(drop=True)
 
         # Apply basic formatting to support calculations
-        trades_df[['amount', 'price', 'fee']] = trades_df[['amount', 'price', 'fee']].astype(float)
+        trades_df[['amount', 'price', 'fee']] = trades_df[['amount', 'price', 'fee']].astype(np.float64)
         trades_df["operator"] = trades_df.apply(lambda x: (1 if x['side'] == 'buy' else -1), axis=1)
         trades_df['amount'] = trades_df['amount'] * trades_df["operator"]
         trades_df["_timestamp"] = pd.to_datetime(trades_df['timestamp'], unit='ms')
@@ -123,6 +125,22 @@ class BitvavoClient:
 
         return trades_df, latest_trade_df
     
-    def calc_action (price_per_piece: float, ticker_price: float, ticker_config: TickerConfig):
-        margin = ((ticker_price / price_per_piece)-1)*100
-        return margin
+    def calc_margin(self, price_per_piece: Decimal, ticker_price: Decimal)->Decimal:
+        margin = ((ticker_price / price_per_piece)-Decimal(1)) * 100
+        return round(margin,3)
+
+
+    def calc_proposed_action (self, margin: Decimal, ticker_config: TickerConfig):
+        action = "hold"
+
+        if margin < 0:
+            # Ticker price is lower than current price per piece, potential buy
+            if abs(margin) >= ticker_config.buy_margin:
+                action = "buy"
+        elif margin > 0:
+            if abs(margin) >= ticker_config.sell_margin:
+            # market price is higher than current price per piece, potential sell
+            # if balance_pcs > order_pcs:
+                action = "sell" 
+
+        return action

@@ -1,9 +1,11 @@
 import pytest
 from src.utils.bitvavo_utils import BitvavoClient
-from src.utils.config_utils import get_absolute_filepath
+from src.utils.config_utils import get_absolute_filepath, TickerConfig
 import json
 from unittest.mock import  patch
 import pandas as pd
+import numpy as np
+from decimal import Decimal, getcontext
 from pandas.testing import assert_frame_equal
 
 @pytest.fixture
@@ -95,7 +97,7 @@ def test_get_market_moq_int(mock_bitvavo, bitvavo_client):
     assert moq == expected_moq
 
 def test_calc_trades(mock_bitvavo, bitvavo_client):
-    file_path = get_absolute_filepath(r'tests\utils\resources\test_bitvavo_trades.json')
+    file_path = get_absolute_filepath(r'tests\utils\resources\test_bitvavo_trades_test.json')
     with open(file_path, 'r') as file:
         data = json.load(file)
 
@@ -143,4 +145,78 @@ def test_calc_trades(mock_bitvavo, bitvavo_client):
     expected_data = pd.DataFrame(expected_json).astype(schema)
 
     assert_frame_equal (result_df, expected_data)
+
+def test_calc_margin():
+    bitvavo_client = BitvavoClient()
     
+    # Test for positive margin
+    price_per_piece = Decimal('10.00')
+    ticker_price = Decimal('12.00')
+    expected_margin = Decimal('20')
+    margin = bitvavo_client.calc_margin(price_per_piece, ticker_price)
+
+    assert margin == expected_margin
+
+    # Test for negative margin
+    price_per_piece = Decimal('10.4321')
+    ticker_price = Decimal('9.1111')
+    expected_margin = Decimal('-12.663')
+    margin = bitvavo_client.calc_margin(price_per_piece, ticker_price)
+
+    assert margin == expected_margin
+
+    # Test for zero margin
+    price_per_piece = Decimal('10.4321')
+    ticker_price = Decimal('10.4321')
+    expected_margin = Decimal('0')
+    margin = bitvavo_client.calc_margin(price_per_piece, ticker_price)
+
+    assert margin == expected_margin
+
+def test_calc_proposed_action_buy():
+    bitvavo_client = BitvavoClient()
+    ticker_config = TickerConfig("test",10,20,"EUR",True)
+
+    # Margin > buy_margin : buy
+    margin = Decimal('-15')
+    expected_action = 'buy'
+    action = bitvavo_client.calc_proposed_action(margin, ticker_config)
+
+    assert action == expected_action
+    # Margin = buy_margin : buy
+    margin = Decimal('-10')
+    expected_action = 'buy'
+    action = bitvavo_client.calc_proposed_action(margin, ticker_config)
+
+    assert action == expected_action
+
+    # Margin < buy_margin : hold
+    margin = Decimal('5')
+    expected_action = 'hold'
+    action = bitvavo_client.calc_proposed_action(margin, ticker_config)
+
+    assert action == expected_action
+
+def test_calc_proposed_action_sell():
+    bitvavo_client = BitvavoClient()
+    ticker_config = TickerConfig("test",10,20,"EUR",True)
+
+    # Margin > sell_margin : sell
+    margin = Decimal('25')
+    expected_action = 'sell'
+    action = bitvavo_client.calc_proposed_action(margin, ticker_config)
+
+    assert action == expected_action
+    # Margin = sell_margin : sell
+    margin = Decimal('20')
+    expected_action = 'sell'
+    action = bitvavo_client.calc_proposed_action(margin, ticker_config)
+
+    assert action == expected_action
+
+    # Margin < sell_margin : hold
+    margin = Decimal('5')
+    expected_action = 'hold'
+    action = bitvavo_client.calc_proposed_action(margin, ticker_config)
+
+    assert action == expected_action   
