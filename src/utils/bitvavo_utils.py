@@ -6,6 +6,7 @@ from src.utils.references import BITVAVO_CONFIG
 import pandas as pd
 import numpy as np
 from decimal import Decimal, getcontext
+from datetime import date
 
 class BitvavoClient:
     def __init__ (self):
@@ -82,12 +83,15 @@ class BitvavoClient:
         trades_df['amount'] = trades_df['amount'] * trades_df["operator"]
         trades_df["_timestamp"] = pd.to_datetime(trades_df['timestamp'], unit='ms')
         trades_df["total"] = (trades_df["amount"] * trades_df["price"]) + trades_df["fee"]
-
+        trades_df["number_of_buys"] = trades_df.apply(lambda x: 0, axis=1).astype(np.int64)
+        trades_df["buy_cooldown"] = trades_df.apply(lambda x: 0, axis=1).astype(np.int64)
+        
         # Initialize calculated attributes
         price_per_piece = 0
         camount = 0
         ctotal = 0
         cfee = 0
+        number_of_buys = 1
 
         # Iterate over the rows using vectorized operations
         for i in range(len(trades_df)):
@@ -105,6 +109,7 @@ class BitvavoClient:
                     ctotal += row["total"]
                     cfee += row["fee"]
                     price_per_piece = (ctotal) / camount
+                    number_of_buys += 1
                 else:
                     # If trade is sell, keep using the previous price_per_piece + fee
                     # to avoid lowering the price_per_piece for sold pieces.
@@ -113,12 +118,16 @@ class BitvavoClient:
                     cfee += row["fee"]
                     price_per_piece += (row["fee"] / camount)
                     ctotal = camount * price_per_piece
+                    number_of_buys = 0
 
             # Add the calculated measures to the dataframe
             trades_df.at[i, 'price_per_piece'] = price_per_piece
             trades_df.at[i, 'camount'] = camount
             trades_df.at[i, 'cfee'] = cfee
             trades_df.at[i, 'ctotal'] = ctotal
+            trades_df.at[i, 'number_of_buys'] = int(number_of_buys)
+            trades_df.at[i, 'buy_cooldown'] = int(number_of_buys) // 3
+
 
         # select the latest, most recent trade
         latest_trade_df = trades_df.tail(1).reset_index(drop=True)
@@ -144,3 +153,10 @@ class BitvavoClient:
                 action = "sell" 
 
         return action
+    
+    def wait_for_cooldown(self, cooldown: np.int64, last_trade_date: date, current_date: date)->bool:
+
+        delta = current_date - last_trade_date
+        # One buy per day is permitted. 
+        # By default, a buy is permitted on a new day, unless there is a cooldown > 0.
+        return (cooldown > delta.days)

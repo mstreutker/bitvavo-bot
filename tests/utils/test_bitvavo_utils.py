@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from decimal import Decimal, getcontext
 from pandas.testing import assert_frame_equal
+from datetime import date
 
 @pytest.fixture
 def mock_bitvavo():
@@ -107,7 +108,7 @@ def test_calc_trades(mock_bitvavo, bitvavo_client):
     trades_json, trades_df = bitvavo_client.get_trades(ticker)
     trades_calc_df, latest_trade_df = bitvavo_client.calc_trades(trades_df)
     
-    result_df = latest_trade_df[['_timestamp','amount','camount', 'price', 'fee', 'cfee','operator','total','ctotal','price_per_piece']]
+    result_df = latest_trade_df[['_timestamp','amount','camount', 'price', 'fee', 'cfee','operator','total','ctotal','price_per_piece','number_of_buys','buy_cooldown']]
 
     # # Set pandas option to display all columns
     # pd.set_option('display.max_columns', None)
@@ -126,6 +127,8 @@ def test_calc_trades(mock_bitvavo, bitvavo_client):
          'total': '3.005',
          'ctotal': '11.0152',
          'price_per_piece': '0.647953',
+         'number_of_buys' : '2',
+         'buy_cooldown': 0,
          }
     ]
 
@@ -139,7 +142,43 @@ def test_calc_trades(mock_bitvavo, bitvavo_client):
         "operator": "int64",
         "total": "float64",
         "ctotal": "float64",
-        "price_per_piece": "float64" 
+        "price_per_piece": "float64",
+        "number_of_buys": "int64",
+        "buy_cooldown": "int64"
+    }
+
+    expected_data = pd.DataFrame(expected_json).astype(schema)
+
+    assert_frame_equal (result_df, expected_data)
+
+
+
+def test_calc_trades_cooldown(mock_bitvavo, bitvavo_client):
+    file_path = get_absolute_filepath(r'tests\utils\resources\test_bitvavo_trades.json')
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+
+    mock_bitvavo.trades.return_value = data
+
+    ticker = 'BTC-EUR'
+    trades_json, trades_df = bitvavo_client.get_trades(ticker)
+    trades_calc_df, latest_trade_df = bitvavo_client.calc_trades(trades_df)
+    
+    result_df = latest_trade_df[['_timestamp','operator','number_of_buys','buy_cooldown']]
+
+    expected_json = [
+        {'_timestamp': '2024-06-16 09:09:25.590000', 
+         'operator': '1',
+         'number_of_buys' : '5',
+         'buy_cooldown': 1,
+         }
+    ]
+
+    schema = {
+        "_timestamp": "datetime64[ns]",
+        "operator": "int64",
+        "number_of_buys": "int64",
+        "buy_cooldown": "int64"
     }
 
     expected_data = pd.DataFrame(expected_json).astype(schema)
@@ -220,3 +259,36 @@ def test_calc_proposed_action_sell():
     action = bitvavo_client.calc_proposed_action(margin, ticker_config)
 
     assert action == expected_action   
+
+def test_calc_trades_cooldown():
+    bitvavo_client = BitvavoClient()
+
+    # Current_date > cooldown: no wait
+    cooldown = 2
+    last_trade_date = date(2024, 1, 1)
+    current_date = date(2024, 1, 4)
+    expected_wait = False
+
+    wait = bitvavo_client.wait_for_cooldown(cooldown, last_trade_date, current_date)
+                                            
+    assert wait == expected_wait
+
+    # Current_date = cooldown : no wait
+    cooldown = 2
+    last_trade_date = date(2024, 1, 1)
+    current_date = date(2024, 1, 3)
+    expected_wait = False
+
+    wait = bitvavo_client.wait_for_cooldown(cooldown, last_trade_date, current_date)
+                                            
+    assert wait == expected_wait
+
+    # Current_date < cooldown : wait
+    cooldown = 2
+    last_trade_date = date(2024, 1, 1)
+    current_date = date(2024, 1, 2)
+    expected_wait = True
+
+    wait = bitvavo_client.wait_for_cooldown(cooldown, last_trade_date, current_date)
+                                            
+    assert wait == expected_wait
