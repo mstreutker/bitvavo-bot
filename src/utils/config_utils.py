@@ -104,6 +104,12 @@ def read_ticker_config(config_file_path)->list[TickerConfig]:
     
     return configs
 
+def find_ticker_config(ticker_configs, target_ticker):
+    for config in ticker_configs:
+        if config.ticker == target_ticker:
+            return config
+    return None
+
 def read_bitvavo_config(config_file_path)->BitvavoConfig:
     """
     Reads configuration from an INI file and converts it into a list of BitvavoConfig instance.
@@ -131,7 +137,7 @@ def read_bitvavo_config(config_file_path)->BitvavoConfig:
   
     return bitvavo_config
 
-def read_email_config(config_file_path)->BitvavoConfig:
+def read_email_config(config_file_path)->EmailConfig:
     """
     Reads configuration from an INI file and converts it into a list of EmailConfig instance.
     

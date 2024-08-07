@@ -38,7 +38,7 @@ class BitvavoClient:
                 available = item['available']
                 break
 
-        return available
+        return Decimal(available)
     
     def get_ticker_price (self, ticker):
         """Return the current price for ticker."""
