@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import configparser
 import os
+from pathlib import Path
 
 class TickerConfig:
     def __init__(self, ticker, buy_margin, sell_margin, currency, trade):
@@ -74,6 +75,8 @@ class EmailConfig:
 def get_absolute_filepath(relative_path)->str:
     current_path = os.getcwd()
     absolute_path = os.path.join(current_path, relative_path)
+    # Convert the path to the correct format for the current OS
+    absolute_path = Path(absolute_path)
     print(f"path: {absolute_path}")
     return absolute_path
 
