@@ -91,7 +91,7 @@ def process_ticker(ticker_config, debug):
 
     return data
 
-def email_results(overview_df):
+def email_results(overview_df, debug):
 
     balance_EUR = client.get_balance('EUR')
     data = []
@@ -99,7 +99,8 @@ def email_results(overview_df):
     data.append(email_helper.df_to_plot_table(overview_df))
     data.append(email_helper.df_to_plot_bar(overview_df))
 
-    #plt.show()
+    if debug:
+        plt.show()
 
     # prepare email
     now = datetime.now()
@@ -109,4 +110,5 @@ def email_results(overview_df):
     emailContent = f"Balance EUR: {balance_EUR}"
 
     # send email
-    email.sendmail(sendTo, emailSubject, emailContent, data)
+    if not debug:
+        email.sendmail(sendTo, emailSubject, emailContent, data)
