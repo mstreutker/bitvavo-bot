@@ -164,9 +164,12 @@ class BitvavoClient:
 
         return action
     
-    def wait_for_cooldown(self, cooldown: np.int64, last_trade_date: date, current_date: date)->bool:
+    def get_remaining_cooldown(self, cooldown: np.int64, last_trade_date: date, current_date: date)->int:
 
         delta = current_date - last_trade_date
+        remaining_cooldown = cooldown - delta.days
+        if remaining_cooldown < 0:
+            remaining_cooldown = 0
         # One buy per day is permitted. 
         # By default, a buy is permitted on a new day, unless there is a cooldown > 0.
-        return (cooldown > delta.days)
+        return remaining_cooldown

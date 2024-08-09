@@ -44,21 +44,21 @@ def process_ticker(ticker_config, debug):
     print (f"current_date: {current_date}")
     print (f"balance_amount: {balance_amount}")
 
-    wait = client.wait_for_cooldown(buy_cooldown, last_trade_date, current_date)
-    print(f"wait: {wait}")
+    remaining_cooldown = client.get_remaining_cooldown(buy_cooldown, last_trade_date, current_date)
+    print(f"remaining_cooldown: {remaining_cooldown}")
 
     execute = False
     reason = ""
 
     if action == "buy":
         if (balance_EUR > order_EUR):
-            if (wait==False):
+            if (remaining_cooldown==0):
                 reason = f"{ticker} Buy {order_EUR} EUR ({minimal_order_qty} pieces)"
                 if not debug:
                     response = client.buy_order(ticker, minimal_order_qty)
                 execute = True
             else:
-                reason = f"{ticker} Cooldown active: {buy_cooldown}"
+                reason = f"{ticker} Cooldown active: {remaining_cooldown}"
         else:
             reason = f"{ticker} Buy balance too low ({balance_EUR} EUR vs {order_EUR} EUR)"
             execute = False
@@ -86,7 +86,8 @@ def process_ticker(ticker_config, debug):
         "balance_pcs": round(balance_amount, 6),
         "order_EUR": round(order_EUR, 6),
         "action": action,
-        "execute": execute
+        "execute": execute,
+        "cooldown": remaining_cooldown
     }
 
     return data

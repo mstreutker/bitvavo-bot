@@ -37,7 +37,7 @@ def main():
 
         overview_df = pd.DataFrame(ticker_data)
         print(overview_df)
-        email_results(overview_df)
+        email_results(overview_df, debug)
 
     except Exception as e:
         print(f"An error occurred: {e}")

@@ -77,16 +77,27 @@ class email_client:
 
 class email_helper:      
 
-    def df_to_plot_table (self, df):
-        fig, ax = plt.subplots()
-  
-        # hide axes
+    def df_to_plot_table(self, df):
+        # Increase the figure size
+        fig, ax = plt.subplots(figsize=(12, 8))
+    
+        # Hide axes
         fig.patch.set_visible(False)
         ax.axis('off')
         ax.axis('tight')
-        table = ax.table(cellText=df.values, colLabels=df.columns,  loc='center')
-        fig.tight_layout()
 
+        # Create the table
+        table = ax.table(cellText=df.values, colLabels=df.columns, loc='center', cellLoc='right', colLoc='right')
+
+        # Adjust font size
+        table.auto_set_font_size(False)
+        table.set_fontsize(14)  # Set the desired font size
+
+        # Scale the cells
+        table.scale(1.2, 1.2)  # Scale the table
+
+        # Save to buffer
+        fig.tight_layout()
         buf = io.BytesIO()
         plt.savefig(buf, format='jpg')
         buf.seek(0)
@@ -112,6 +123,15 @@ class email_helper:
         for bar, execute in zip(bars, df_sorted['execute']):
             if not execute:
                 bar.set_hatch('/')
+
+        # Annotate the cooldown values above the bars
+        for bar, cooldown in zip(bars, df_sorted['cooldown']):
+            height = bar.get_height()
+            ax.annotate(f'{cooldown}', 
+                        xy=(bar.get_x() + bar.get_width() / 2, height),
+                        xytext=(0, 3),  # 3 points vertical offset
+                        textcoords="offset points",
+                        ha='center', va='bottom')                
 
         # Set labels and title
         ax.set_xlabel('Ticker')
