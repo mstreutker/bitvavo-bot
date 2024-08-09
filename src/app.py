@@ -11,7 +11,7 @@ email_helper = email_helper()
 
 current_date = datetime.now().date()
 
-def process_ticker(ticker_config):
+def process_ticker(ticker_config, debug):
     ticker = ticker_config.ticker
     balance_EUR = client.get_balance('EUR')
     print(balance_EUR)
@@ -54,7 +54,8 @@ def process_ticker(ticker_config):
         if (balance_EUR > order_EUR):
             if (wait==False):
                 reason = f"{ticker} Buy {order_EUR} EUR ({minimal_order_qty} pieces)"
-                response = client.buy_order(ticker, minimal_order_qty)
+                if not debug:
+                    response = client.buy_order(ticker, minimal_order_qty)
                 execute = True
             else:
                 reason = f"{ticker} Cooldown active: {buy_cooldown}"
@@ -65,7 +66,8 @@ def process_ticker(ticker_config):
     if action == "sell":
         if (balance_amount > minimal_order_qty):
             reason = f"{ticker} Sell {minimal_order_qty} pieces ({round(order_EUR,2)} EUR)"
-            response = client.sell_order(ticker, minimal_order_qty)
+            if not debug:
+                response = client.sell_order(ticker, minimal_order_qty)
             execute = True
         else:
             reason = f"Sell balance too low ({balance_amount} pcs vs {minimal_order_qty} pcs)"
