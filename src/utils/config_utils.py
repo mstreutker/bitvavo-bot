@@ -73,10 +73,12 @@ class EmailConfig:
 
 
 def get_absolute_filepath(relative_path)->str:
+    # Convert the path to the correct format for the current OS
+    relative_path = Path(relative_path)
+
     current_path = os.getcwd()
     absolute_path = os.path.join(current_path, relative_path)
-    # Convert the path to the correct format for the current OS
-    absolute_path = Path(absolute_path)
+
     print(f"path: {absolute_path}")
     return absolute_path
 
