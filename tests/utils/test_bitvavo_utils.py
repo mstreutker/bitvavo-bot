@@ -267,28 +267,28 @@ def test_calc_trades_cooldown():
     cooldown = 2
     last_trade_date = date(2024, 1, 1)
     current_date = date(2024, 1, 4)
-    expected_wait = False
+    expected_cooldown = 0
 
-    wait = bitvavo_client.wait_for_cooldown(cooldown, last_trade_date, current_date)
+    remaining_cooldown = bitvavo_client.get_remaining_cooldown(cooldown, last_trade_date, current_date)
                                             
-    assert wait == expected_wait
+    assert remaining_cooldown == expected_cooldown
 
     # Current_date = cooldown : no wait
     cooldown = 2
     last_trade_date = date(2024, 1, 1)
     current_date = date(2024, 1, 3)
-    expected_wait = False
+    expected_cooldown = 0
 
-    wait = bitvavo_client.wait_for_cooldown(cooldown, last_trade_date, current_date)
+    remaining_cooldown = bitvavo_client.get_remaining_cooldown(cooldown, last_trade_date, current_date)
                                             
-    assert wait == expected_wait
+    assert remaining_cooldown == expected_cooldown
 
     # Current_date < cooldown : wait
     cooldown = 2
     last_trade_date = date(2024, 1, 1)
     current_date = date(2024, 1, 2)
-    expected_wait = True
+    expected_cooldown = 1
 
-    wait = bitvavo_client.wait_for_cooldown(cooldown, last_trade_date, current_date)
+    remaining_cooldown = bitvavo_client.get_remaining_cooldown(cooldown, last_trade_date, current_date)
                                             
-    assert wait == expected_wait
+    assert remaining_cooldown == expected_cooldown
