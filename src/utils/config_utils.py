@@ -74,6 +74,7 @@ class EmailConfig:
 def get_absolute_filepath(relative_path)->str:
     current_path = os.getcwd()
     absolute_path = os.path.join(current_path, relative_path)
+    print(f"path: {absolute_path}")
     return absolute_path
 
 def read_ticker_config(config_file_path)->list[TickerConfig]:
@@ -120,6 +121,9 @@ def read_bitvavo_config(config_file_path)->BitvavoConfig:
     # Initialize the configparser
     config = configparser.ConfigParser()
 
+    # Resolve the absolute filepath
+    config_file_path = get_absolute_filepath(config_file_path)    
+
     # Read the configuration from the INI file
     config.read(config_file_path)
 
@@ -146,6 +150,9 @@ def read_email_config(config_file_path)->EmailConfig:
     """
     # Initialize the configparser
     config = configparser.ConfigParser()
+
+    # Resolve the absolute filepath
+    config_file_path = get_absolute_filepath(config_file_path)
 
     # Read the configuration from the INI file
     config.read(config_file_path)
