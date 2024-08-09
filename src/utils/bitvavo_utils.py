@@ -72,7 +72,15 @@ class BitvavoClient:
         trades_df = pd.DataFrame(trades_json)
       
         return trades_json, trades_df
-        
+
+    def buy_order(self, ticker, amount):
+        #response = self.bitvavo.time()
+        response = self.bitvavo.placeOrder(ticker, 'buy', 'market', { 'amount': amount})
+        return response
+
+    def sell_order(self, ticker, amount):
+        response = self.bitvavo.placeOrder(ticker, 'sell', 'market', { 'amount': amount})
+        return response           
 
     def calc_trades(self, trades_df: pd.DataFrame):
         # Sort trades ascending (oldest first)
