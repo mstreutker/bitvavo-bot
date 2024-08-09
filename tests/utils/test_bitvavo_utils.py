@@ -28,13 +28,13 @@ def test_get_balance(mock_bitvavo, bitvavo_client):
 
     # Test for EUR balance
     ticker = 'EUR'
-    expected_balance = '502.27'
+    expected_balance = Decimal('502.27')
     balance = bitvavo_client.get_balance(ticker)
     assert balance == expected_balance
 
     # Test for BTC balance
     ticker = 'BTC'
-    expected_balance = '0.00123456'
+    expected_balance = Decimal('0.00123456')
     balance = bitvavo_client.get_balance(ticker)
     assert balance == expected_balance
 

@@ -8,16 +8,15 @@ def main():
     Main entry point for the application
     """
     try:
-        # start app
-        a = 1
-
         config_file_path = get_absolute_filepath(TICKER_CONFIG)
         ticker_configs = read_ticker_config(config_file_path)
 
         ticker_data = []
 
         for config in ticker_configs:
+            print (f"start ticker {config.ticker}")
             data = process_ticker (config)
+            print (f"finished ticker {config.ticker}")
             ticker_data.append(data)
 
         overview_df = pd.DataFrame(ticker_data)

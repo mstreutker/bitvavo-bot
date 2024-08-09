@@ -37,8 +37,10 @@ class BitvavoClient:
             if item['symbol'] == ticker:
                 available = item['available']
                 break
-
-        return Decimal(available)
+        if available is not None:        
+            return Decimal(available)
+        else:
+            return None
     
     def get_ticker_price (self, ticker):
         """Return the current price for ticker."""

@@ -95,7 +95,7 @@ def email_results(overview_df):
     data.append(email_helper.df_to_plot_table(overview_df))
     data.append(email_helper.df_to_plot_bar(overview_df))
 
-    plt.show()
+    #plt.show()
 
     # prepare email
     now = datetime.now()
