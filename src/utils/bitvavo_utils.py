@@ -69,6 +69,7 @@ class BitvavoClient:
     def get_trades(self, ticker):
         # Retrieve historical trades for ticker
         trades_json = self.bitvavo.trades(ticker, {})
+
         trades_df = pd.DataFrame(trades_json)
       
         return trades_json, trades_df

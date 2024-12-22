@@ -3,6 +3,7 @@ from src.utils.config_utils import TickerConfig, get_absolute_filepath, read_tic
 from src.utils.email_utils import email_helper, email_client
 from decimal import Decimal
 from datetime import datetime, date
+
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -27,6 +28,7 @@ def process_ticker(ticker_config, debug):
     print(f"order_EUR: {order_EUR}")
 
     trades_df, latest_trade_df = client.calc_trades(trades_df)
+
     latest_trade_df = latest_trade_df.iloc[-1]
     price_per_piece = Decimal(latest_trade_df['price_per_piece'])
 
@@ -97,11 +99,8 @@ def email_results(overview_df, debug):
     balance_EUR = client.get_balance('EUR')
     data = []
     
-    data.append(email_helper.df_to_plot_table(overview_df))
-    data.append(email_helper.df_to_plot_bar(overview_df))
-
-    if debug:
-        plt.show()
+    data.append(email_helper.df_to_plot_table(overview_df, debug))
+    data.append(email_helper.df_to_plot_bar(overview_df, debug))
 
     # prepare email
     now = datetime.now()

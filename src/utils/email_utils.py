@@ -4,6 +4,9 @@ from src.utils.references import EMAIL_CONFIG
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
+import dataframe_image as dfi
+from PIL import Image
+
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import io
@@ -77,37 +80,22 @@ class email_client:
 
 class email_helper:      
 
-    def df_to_plot_table(self, df):
+    def df_to_plot_table(self, df, debug=False):
         # Increase the figure size
         fig, ax = plt.subplots(figsize=(12, 8))
-    
-        # Hide axes
-        fig.patch.set_visible(False)
-        ax.axis('off')
-        ax.axis('tight')
-
-        # Create the table
-        table = ax.table(cellText=df.values, colLabels=df.columns, loc='center', cellLoc='right', colLoc='right')
-
-        # Adjust font size
-        table.auto_set_font_size(False)
-        table.set_fontsize(14)  # Set the desired font size
-
-        # Scale the cells
-        table.scale(1.2, 1.2)  # Scale the table
-
-        # Save to buffer
-        fig.tight_layout()
         buf = io.BytesIO()
-        plt.savefig(buf, format='jpg')
+
+        dfi.export(df, buf, table_conversion='matplotlib')
         buf.seek(0)
+        if debug:
+            image = Image.open(buf)
+            image.show()
         data = buf.read()
 
         return data
         
-    def df_to_plot_bar(self, df):
+    def df_to_plot_bar(self, df, debug=False):
         rcParams.update({'figure.autolayout': True})
-        # df.sort_values(by='margin', ascending=True).plot(kind='bar', y=['margin'], x='ticker')
 
         # Sort the DataFrame by 'margin'
         df_sorted = df.sort_values(by='margin', ascending=True)
@@ -136,12 +124,17 @@ class email_helper:
         # Set labels and title
         ax.set_xlabel('Ticker')
         ax.set_ylabel('Margin')
-        ax.set_title('Bar Plot of Margin by Ticker with Conditional Colors')
+        ax.set_title('Ticker by Margin')
 
+        # Rotate x-axis labels vertically
+        plt.xticks(rotation=90)
         
         buf = io.BytesIO()
         plt.savefig(buf, format='jpg')
         buf.seek(0)
+        if debug:
+            image = Image.open(buf)
+            image.show()
         data = buf.read()
 
         return data        
