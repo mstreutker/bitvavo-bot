@@ -12,12 +12,52 @@ email_helper = email_helper()
 
 current_date = datetime.now().date()
 
-def process_ticker(ticker_config, debug):
-    ticker = ticker_config.ticker
+def get_tradable_balances():
+    balances_df = client.get_balances()
+    balances_df = balances_df[balances_df['symbol'] != 'EUR']
+    balances_df = balances_df[balances_df['available'] != '0']
+    return balances_df
+
+def get_trade_history_ticker(trade_history_df, ticker):
+    ticker = ticker.removesuffix('-EUR')
+    filtered_df = trade_history_df[
+        ((trade_history_df['sentCurrency'] == ticker) | (trade_history_df['receivedCurrency'] == ticker))
+        & ((trade_history_df['side'] == "buy") | (trade_history_df['side'] == "sell"))
+    ]
+    return filtered_df
+
+def find_ticker_config(configs, ticker):
+    # print(f"tickerconfigs")
+    # print(f"symbol:{ticker}")
+    # print (configs)
+    # Assume default ticker is identified by a specific attribute (e.g., 'DEFAULT')
+    default_config = next((config for config in configs if config.ticker == "DEFAULT-CFG"), None)
+    return next((config for config in configs if config.ticker == ticker), default_config)
+
+
+def process_tickers(ticker_configs : list[TickerConfig], debug):
+    ticker_data = []
+    balances_df = get_tradable_balances()
+    print (f"balances: {balances_df}")
+    trade_history_df = client.getTradeHistory()
+    for index, row in balances_df.iterrows():
+        ticker = row['symbol']
+        ticker = f"{ticker}-EUR"
+        ticker_config = find_ticker_config(ticker_configs, ticker)
+        trades_df = get_trade_history_ticker(trade_history_df, ticker)
+        data = process_ticker(trades_df, ticker_config, ticker, debug)
+        ticker_data.append(data) 
+    return ticker_data
+
+
+def process_ticker(trades_df, ticker_config, ticker, debug):
+    print(f"process_ticker: {ticker}")
+    print(f"ticker_config: {ticker}")
+    #ticker = ticker_config.ticker
     balance_EUR = client.get_balance('EUR')
     print(balance_EUR)
-    trades_json, trades_df = client.get_trades(ticker)
-
+    #trades_json, trades_df = client.get_trades(ticker)
+    #trades_df = client.getTradeHistoryTicker(ticker)
     market_df, minimal_order_qty = client.get_market(ticker)
     print (minimal_order_qty)
 
@@ -31,7 +71,8 @@ def process_ticker(ticker_config, debug):
 
     latest_trade_df = latest_trade_df.iloc[-1]
     price_per_piece = Decimal(latest_trade_df['price_per_piece'])
-
+    print(price_per_piece)
+    print(ticker_price)
     margin = client.calc_margin(price_per_piece, ticker_price)
     print(margin)
 

@@ -27,7 +27,20 @@ class BitvavoClient:
             'ACCESSWINDOW': accesswindow,
             'DEBUGGING': debugging
         })
-    
+        
+    def createPostfix(self, options):
+        params = []
+        for key in options:
+            params.append(key + '=' + str(options[key]))
+        postfix = '&'.join(params)
+        if(len(options) > 0):
+            postfix = '?' + postfix
+        return postfix
+
+    def get_balances(self):
+        response = self.bitvavo.balance({})
+        return pd.DataFrame(response)
+
     def get_balance (self, ticker):
         """Return the balance for the ticker."""
         response = self.bitvavo.balance({})
@@ -74,6 +87,64 @@ class BitvavoClient:
       
         return trades_json, trades_df
 
+
+    def getTradeHistoryPage(self, page):
+        options = {}
+        body = {}
+        #options['type'] = 'buy'
+        options['page']=page
+        options['fromDate']=0
+        postfix = self.createPostfix(options)
+        #hist = bitvavo.privateRequest('/orders', postfix, {}, 'GET')
+        hist = self.bitvavo.privateRequest('/account/history/', postfix, body, 'GET')
+        return hist
+
+    def getTradeHistory(self):
+
+        # ticker = ticker.removesuffix('-EUR')
+
+        all_data = []
+        current_page = 1
+        total_pages = 1
+
+
+        while current_page <= total_pages:
+            data = self.getTradeHistoryPage(page=current_page)
+            total_pages = data['totalPages']  # Update totalPages from API response
+            current_page = data['currentPage']  # Update currentPage from API response
+            print (f"total pages: {total_pages}")
+            print (f"total pages: {current_page}")
+            current_page+=1
+            all_data.extend(data['items'])
+
+        items_df = pd.json_normalize(all_data)
+
+        items_df['amount'] = items_df.apply(
+            lambda row: row['receivedAmount'] if row['type'] == 'buy' else row['sentAmount'],
+            axis=1
+        )
+
+        items_df = items_df.rename(columns={
+            'priceAmount': 'price',
+            'feesAmount': 'fee',
+            'type': 'side'
+        })
+
+        # Ensure 'executedAt' is in datetime format
+        items_df['executedAt'] = pd.to_datetime(items_df['executedAt'])
+
+        # Convert 'executedAt' to Unix timestamp in milliseconds
+        items_df['timestamp'] = (items_df['executedAt'].astype('int64') // 10**6)
+
+
+        # filtered_df = items_df[
+        #     ((items_df['sentCurrency'] == ticker) | (items_df['receivedCurrency'] == ticker))
+        #     & ((items_df['side'] == "buy") | (items_df['side'] == "sell"))
+        # ]
+
+        return items_df
+
+
     def buy_order(self, ticker, amount):
         #response = self.bitvavo.time()
         response = self.bitvavo.placeOrder(ticker, 'buy', 'market', { 'amount': amount})
@@ -87,16 +158,17 @@ class BitvavoClient:
         # Sort trades ascending (oldest first)
         trades_df = trades_df.sort_values(by='timestamp')
         trades_df = trades_df.reset_index(drop=True)
-
         # Apply basic formatting to support calculations
         trades_df[['amount', 'price', 'fee']] = trades_df[['amount', 'price', 'fee']].astype(np.float64)
-        trades_df["operator"] = trades_df.apply(lambda x: (1 if x['side'] == 'buy' else -1), axis=1)
-        trades_df['amount'] = trades_df['amount'] * trades_df["operator"]
-        trades_df["_timestamp"] = pd.to_datetime(trades_df['timestamp'], unit='ms')
+        trades_df["operator"] = trades_df.apply(lambda x: (1 if x['side'] == 'buy' else -1), axis=1) 
+        trades_df['amount'] = trades_df['amount'] * trades_df["operator"]     
+        trades_df["_timestamp"] = pd.to_datetime(trades_df['timestamp'], unit='ms')     
         trades_df["total"] = (trades_df["amount"] * trades_df["price"]) + trades_df["fee"]
         trades_df["number_of_buys"] = trades_df.apply(lambda x: 0, axis=1).astype(np.int64)
         trades_df["buy_cooldown"] = trades_df.apply(lambda x: 0, axis=1).astype(np.int64)
-        
+
+        #print(trades_df)
+
         # Initialize calculated attributes
         price_per_piece = 0
         camount = 0
@@ -130,7 +202,7 @@ class BitvavoClient:
                     price_per_piece += (row["fee"] / camount)
                     ctotal = camount * price_per_piece
                     number_of_buys = 0
-
+            
             # Add the calculated measures to the dataframe
             trades_df.at[i, 'price_per_piece'] = price_per_piece
             trades_df.at[i, 'camount'] = camount
@@ -138,7 +210,6 @@ class BitvavoClient:
             trades_df.at[i, 'ctotal'] = ctotal
             trades_df.at[i, 'number_of_buys'] = int(number_of_buys)
             trades_df.at[i, 'buy_cooldown'] = int(number_of_buys) // 3
-
 
         # select the latest, most recent trade
         latest_trade_df = trades_df.tail(1).reset_index(drop=True)

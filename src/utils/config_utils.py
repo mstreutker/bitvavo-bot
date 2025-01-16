@@ -91,13 +91,14 @@ def read_ticker_config(config_file_path)->list[TickerConfig]:
     """
     # Initialize the configparser
     config = configparser.ConfigParser()
-
+    print(f"config path: {config_file_path}")
     # Read the configuration from the INI file
     config.read(config_file_path)
 
     # Transform the INI structure into a list of TickerConfig instances
     configs = []
     for ticker in config.sections():
+        print(f"ticker:{ticker}")
         settings = config[ticker]
         ticker_config = TickerConfig(
             ticker=ticker,

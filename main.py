@@ -1,4 +1,4 @@
-from src.app import process_ticker, email_results
+from src.app import process_tickers, email_results
 from src.utils.config_utils import get_absolute_filepath, read_ticker_config
 from src.utils.references import TICKER_CONFIG
 import pandas as pd
@@ -27,13 +27,19 @@ def main():
         config_file_path = get_absolute_filepath(TICKER_CONFIG)
         ticker_configs = read_ticker_config(config_file_path)
 
+        print(f"config_file_path:{config_file_path}")
+        print (ticker_configs)
+   
         ticker_data = []
 
-        for config in ticker_configs:
-            print (f"start ticker {config.ticker}")
-            data = process_ticker (config, debug)
-            print (f"finished ticker {config.ticker}")
-            ticker_data.append(data)
+        ticker_data = process_tickers(ticker_configs, debug)
+
+        # for config in ticker_configs:
+        #     if config.ticker == 'DOGE-EUR':
+        #         print (f"start ticker {config.ticker}")
+        #         data = process_ticker (config, debug)
+        #         print (f"finished ticker {config.ticker}")
+        #         ticker_data.append(data)
 
         overview_df = pd.DataFrame(ticker_data)
         print(overview_df)
