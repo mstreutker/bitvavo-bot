@@ -45,8 +45,10 @@ def process_tickers(ticker_configs : list[TickerConfig], debug):
         ticker = f"{ticker}-EUR"
         ticker_config = find_ticker_config(ticker_configs, ticker)
         trades_df = get_trade_history_ticker(trade_history_df, ticker)
-        data = process_ticker(trades_df, ticker_config, ticker, debug)
-        ticker_data.append(data) 
+
+        if len(trades_df) > 0:      
+            data = process_ticker(trades_df, ticker_config, ticker, debug)
+            ticker_data.append(data) 
     return ticker_data
 
 
