@@ -147,11 +147,11 @@ class BitvavoClient:
 
     def buy_order(self, ticker, amount):
         #response = self.bitvavo.time()
-        response = self.bitvavo.placeOrder(ticker, 'buy', 'market', { 'amount': amount})
+        response = self.bitvavo.placeOrder(ticker, 'buy', 'market', { 'amount': amount, 'operatorId': 1 })
         return response
 
     def sell_order(self, ticker, amount):
-        response = self.bitvavo.placeOrder(ticker, 'sell', 'market', { 'amount': amount})
+        response = self.bitvavo.placeOrder(ticker, 'sell', 'market', { 'amount': amount, 'operatorId': 1 })
         return response           
 
     def calc_trades(self, trades_df: pd.DataFrame):
@@ -167,7 +167,6 @@ class BitvavoClient:
         trades_df["number_of_buys"] = trades_df.apply(lambda x: 0, axis=1).astype(np.int64)
         trades_df["buy_cooldown"] = trades_df.apply(lambda x: 0, axis=1).astype(np.int64)
 
-        #print(trades_df)
 
         # Initialize calculated attributes
         price_per_piece = 0
